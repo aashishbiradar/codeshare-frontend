@@ -47,11 +47,15 @@ import 'codemirror/addon/fold/indent-fold.js'
 import 'codemirror/addon/fold/markdown-fold.js'
 import 'codemirror/addon/fold/xml-fold.js'
 
+// socket
+import io from 'socket.io-client';
+
 export default {
   name: 'Share',
   components: { codemirror },
   data() {
     return {
+      socket: null,
       isConnected: false,
       newCode: '',
       code: '',
@@ -84,6 +88,43 @@ export default {
     }
   },
   created() {
+    // init
+    if (window.location.origin === 'http://localhost:8080') {
+      this.socket = io('http://localhost:3000');
+    } else {
+      this.socket = io();
+    }
+
+    // connect
+    this.socket.on('connect', () => {
+      this.isConnected = true;
+      console.log('Connected to server');
+      this.socket.emit('join', { shareId: this.shareId });
+    });
+
+    // disconnect
+    this.socket.on('disconnect', () => {
+      this.isConnected = false;
+      console.log('Disconnected');
+    });
+
+    // newUser
+    this.socket.on('newUser', (socketId) => {
+      if (this.code === '') return;
+      this.socket.emit('codeChange', {
+        socketId: socketId,
+        payload: this.code
+      });
+    });
+
+    // codeChange
+    this.socket.on('codeChange', (newContent) => {
+      if (newContent === this.code) return;
+      this.code = newContent;
+      var cursor = this.codemirror.getCursor();
+      this.codemirror.setValue(this.code);
+      this.codemirror.setCursor(cursor);
+    });
   },
   methods: {
     codeChange() {
@@ -93,23 +134,8 @@ export default {
         shareId: this.shareId,
         payload: this.code
       };
-      this.$socket.emit('codeChange', params);
+      this.socket.emit('codeChange', params);
     },
-  },
-  sockets: {
-    connect() {
-      // Fired when the socket connects.
-      this.isConnected = true;
-    },
-
-    disconnect() {
-      this.isConnected = false;
-    },
-
-    // Fired when the server sends something on the "messageChannel" channel.
-    messageChannel(data) {
-      this.socketMessage = data
-    }
   },
 }
 </script>
