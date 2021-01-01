@@ -1,6 +1,5 @@
 <template>
-  <div>
-    <h1>Live Code Share</h1>
+  <div class="lcs">
     <codemirror 
       ref="codeM"
       v-model="newCode"
@@ -139,4 +138,10 @@ export default {
   },
 }
 </script>
+
+<style lang="scss">
+.lcs .cm-s-base16-dark {
+  height: auto;
+}
+</style>
 
